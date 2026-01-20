@@ -1,6 +1,6 @@
-# swarm-mobile-android
+# bee-lite-java
 
-[![Go Reference](https://pkg.go.dev/badge/github.com/Solar-Punk-Ltd/swarm-mobile-android.svg)](https://pkg.go.dev/github.com/Solar-Punk-Ltd/swarm-mobile-android)
+[![Go Reference](https://pkg.go.dev/badge/github.com/Solar-Punk-Ltd/bee-lite-java.svg)](https://pkg.go.dev/github.com/Solar-Punk-Ltd/bee-lite-java)
 
 This repository wraps [bee-lite](https://github.com/Solar-Punk-Ltd/bee-lite) functionality and
 provides its core functionalities to implement Android applications what are able to use [Swarm network](https://docs.ethswarm.org/).
