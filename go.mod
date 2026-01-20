@@ -4,12 +4,9 @@ exclude github.com/btcsuite/btcd/chaincfg/chainhash v1.0.1 // otherwise there si
 
 go 1.24.2
 
-//todo remove after v0.0.11 published
-require github.com/Solar-Punk-Ltd/bee-lite v0.0.10
+require github.com/Solar-Punk-Ltd/bee-lite v0.0.11
 
 require github.com/ethersphere/bee/v2 v2.6.0
-
-replace github.com/Solar-Punk-Ltd/bee-lite => ../bee-lite
 
 require (
 	contrib.go.opencensus.io/exporter/prometheus v0.4.2 // indirect
@@ -140,7 +137,6 @@ require (
 	go.uber.org/zap v1.27.0 // indirect
 	golang.org/x/crypto v0.47.0 // indirect
 	golang.org/x/exp v0.0.0-20240213143201-ec583247a57a // indirect
-	golang.org/x/mobile v0.0.0-20260112195712-5b9ecdfb8721 // indirect
 	golang.org/x/mod v0.32.0 // indirect
 	golang.org/x/net v0.49.0 // indirect
 	golang.org/x/sync v0.19.0 // indirect
