@@ -1,4 +1,4 @@
-module github.com/Solar-Punk-Ltd/swarm-mobile-android
+module github.com/Solar-Punk-Ltd/bee-lite-java
 
 exclude github.com/btcsuite/btcd/chaincfg/chainhash v1.0.1 // otherwise there sill be conflict with btcd v0.22.0-beta
 
