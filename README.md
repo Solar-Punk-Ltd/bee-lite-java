@@ -66,7 +66,13 @@ First you need gomobile and bind
 make install
 ```
 
-OR
+then
+
+```bash
+make build
+```
+
+OR if you want to do it your own
 
 ```bash
 go install golang.org/x/mobile/cmd/gomobile@latest
@@ -78,4 +84,4 @@ In the root of this project run
 
 Run the following:
 
-`gomobile bind -target=android -androidapi=21 -o bee-lite.aar`
+`gomobile bind -target=android -androidapi=21 -o mobile.aar`
