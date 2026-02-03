@@ -49,6 +49,9 @@ type File struct {
 func StartNode(options *MobileNodeOptions, password string, verbosity string) (*MobileNode, error) {
 
 	beeliteOptions, err := convert(options)
+
+	fmt.Printf("password: %s\n", password)
+	fmt.Printf("%+v\n", beeliteOptions)
 	if err != nil {
 		return nil, err
 	}
@@ -168,7 +171,7 @@ func (a *MobileNode) ConnectedPeerCount() int {
 func (a *MobileNode) Shutdown() error {
 	err := a.beeClient.Shutdown()
 	if err == nil {
-		a.beeClient = nil
+		a.beeClient.GetLogger().Info("shutdown succeeded")
 		return nil
 	}
 	a.beeClient.GetLogger().Error(err, "shutdown failed")
