@@ -13,7 +13,15 @@ import (
 
 const StringSliceDelimiter = "|"
 
-type MobileNode struct {
+type MobileNode interface {
+	BlockchainData() (*BlockchainData, error)
+	ConnectedPeerCount() int
+	Download(hash string) (*File, error)
+	Shutdown() error
+	WalletAddress() string
+}
+
+type MobileNodeImp struct {
 	beeClient *beelite.Beelite
 }
 
@@ -46,7 +54,13 @@ type File struct {
 	Data []byte
 }
 
-func StartNode(options *MobileNodeOptions, password string, verbosity string) (*MobileNode, error) {
+type BlockchainData struct {
+	WalletAddress     string
+	ChequebookAddress string
+	ChequebookBalance string
+}
+
+func StartNode(options *MobileNodeOptions, password string, verbosity string) (MobileNode, error) {
 
 	beeliteOptions, err := convert(options)
 
@@ -61,7 +75,7 @@ func StartNode(options *MobileNodeOptions, password string, verbosity string) (*
 		return nil, err
 	}
 
-	return &MobileNode{beeClient: beeClient}, nil
+	return &MobileNodeImp{beeClient: beeClient}, nil
 }
 
 func convert(options *MobileNodeOptions) (*beelite.LiteOptions, error) {
@@ -129,7 +143,7 @@ func validate(options *MobileNodeOptions) error {
 	return nil
 }
 
-func (bl *MobileNode) Download(hash string) (*File, error) {
+func (bl *MobileNodeImp) Download(hash string) (*File, error) {
 	bl.beeClient.GetLogger().Info("downloading: ", "hash", hash)
 
 	var result *File = nil
@@ -161,14 +175,29 @@ func (bl *MobileNode) Download(hash string) (*File, error) {
 	return result, nil
 }
 
-func (a *MobileNode) WalletAddress() string {
+func (a *MobileNodeImp) WalletAddress() string {
 	return a.beeClient.OverlayEthAddress().String()
 }
-func (a *MobileNode) ConnectedPeerCount() int {
+
+func (a *MobileNodeImp) BlockchainData() (*BlockchainData, error) {
+	chequebookBalance, err := a.beeClient.ChequebookBalance()
+	if err != nil {
+		a.beeClient.GetLogger().Error(err, "failed to get chequebook balance")
+		return nil, err
+	}
+
+	return &BlockchainData{
+		WalletAddress:     a.beeClient.OverlayEthAddress().String(),
+		ChequebookAddress: a.beeClient.ChequebookAddr().String(),
+		ChequebookBalance: chequebookBalance.String(),
+	}, nil
+}
+
+func (a *MobileNodeImp) ConnectedPeerCount() int {
 	return a.beeClient.ConnectedPeerCount()
 }
 
-func (a *MobileNode) Shutdown() error {
+func (a *MobileNodeImp) Shutdown() error {
 	err := a.beeClient.Shutdown()
 	if err == nil {
 		a.beeClient.GetLogger().Info("shutdown succeeded")
