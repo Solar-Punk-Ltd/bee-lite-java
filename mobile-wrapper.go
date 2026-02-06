@@ -23,6 +23,7 @@ type MobileNode interface {
 
 type MobileNodeImp struct {
 	beeClient *beelite.Beelite
+	nodeMode  NodeModeType
 }
 
 type MobileNodeOptions struct {
@@ -60,6 +61,27 @@ type BlockchainData struct {
 	ChequebookBalance string
 }
 
+type NodeModeType int
+
+const (
+	NodeModeUltraLight NodeModeType = iota
+	NodeModeLight
+	NodeModeFull
+)
+
+func (n NodeModeType) String() string {
+	switch n {
+	case NodeModeUltraLight:
+		return "ultra-light"
+	case NodeModeLight:
+		return "light"
+	case NodeModeFull:
+		return "full"
+	default:
+		return "unknown"
+	}
+}
+
 func StartNode(options *MobileNodeOptions, password string, verbosity string) (MobileNode, error) {
 
 	beeliteOptions, err := convert(options)
@@ -75,7 +97,16 @@ func StartNode(options *MobileNodeOptions, password string, verbosity string) (M
 		return nil, err
 	}
 
-	return &MobileNodeImp{beeClient: beeClient}, nil
+	return &MobileNodeImp{beeClient: beeClient, nodeMode: determineNodeMode(options)}, nil
+}
+
+func determineNodeMode(options *MobileNodeOptions) NodeModeType {
+	if options.FullNodeMode && !options.BootnodeMode {
+		return NodeModeFull
+	} else if options.BlockchainRpcEndpoint != "" {
+		return NodeModeLight
+	}
+	return NodeModeUltraLight
 }
 
 func convert(options *MobileNodeOptions) (*beelite.LiteOptions, error) {
@@ -175,34 +206,59 @@ func (bl *MobileNodeImp) Download(hash string) (*File, error) {
 	return result, nil
 }
 
-func (a *MobileNodeImp) WalletAddress() string {
-	return a.beeClient.OverlayEthAddress().String()
+func (m *MobileNodeImp) WalletAddress() string {
+	return m.beeClient.OverlayEthAddress().String()
 }
 
-func (a *MobileNodeImp) BlockchainData() (*BlockchainData, error) {
-	chequebookBalance, err := a.beeClient.ChequebookBalance()
+func (m *MobileNodeImp) BlockchainData() (*BlockchainData, error) {
+	chequebookBalance, err := m.getChequebookBalance()
+	chequebookAddress := m.getChequebookAddr()
+
 	if err != nil {
-		a.beeClient.GetLogger().Error(err, "failed to get chequebook balance")
 		return nil, err
 	}
 
 	return &BlockchainData{
-		WalletAddress:     a.beeClient.OverlayEthAddress().String(),
-		ChequebookAddress: a.beeClient.ChequebookAddr().String(),
-		ChequebookBalance: chequebookBalance.String(),
+		WalletAddress:     m.beeClient.OverlayEthAddress().String(),
+		ChequebookAddress: chequebookAddress,
+		ChequebookBalance: chequebookBalance,
 	}, nil
 }
 
-func (a *MobileNodeImp) ConnectedPeerCount() int {
-	return a.beeClient.ConnectedPeerCount()
+func (m *MobileNodeImp) ConnectedPeerCount() int {
+	return m.beeClient.ConnectedPeerCount()
 }
 
-func (a *MobileNodeImp) Shutdown() error {
-	err := a.beeClient.Shutdown()
+func (m *MobileNodeImp) Shutdown() error {
+	err := m.beeClient.Shutdown()
 	if err == nil {
-		a.beeClient.GetLogger().Info("shutdown succeeded")
+		m.beeClient.GetLogger().Info("shutdown succeeded")
 		return nil
 	}
-	a.beeClient.GetLogger().Error(err, "shutdown failed")
+	m.beeClient.GetLogger().Error(err, "shutdown failed")
 	return err
+}
+
+func (m *MobileNodeImp) getChequebookAddr() string {
+
+	if m.nodeMode == NodeModeUltraLight {
+		return "N/A"
+	}
+
+	return m.beeClient.ChequebookAddr().String()
+}
+
+func (m *MobileNodeImp) getChequebookBalance() (string, error) {
+	if m.nodeMode == NodeModeUltraLight {
+		return "N/A", nil
+	}
+
+	chequebookBalance, err := m.beeClient.ChequebookBalance()
+	if err != nil {
+		m.beeClient.GetLogger().Error(err, "failed to get chequebook balance")
+		return "", err
+	}
+
+	return chequebookBalance.String(), nil
+
 }
