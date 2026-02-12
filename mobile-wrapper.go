@@ -19,67 +19,16 @@ type MobileNode interface {
 	Download(hash string) (*File, error)
 	Shutdown() error
 	WalletAddress() string
+	FetchStamps()
+	GetStampCount() int
+	GetStamp(index int) *StampData
+	BuyStamp(amountString string, depthString string, label string, immutable bool) (string, error)
 }
 
 type MobileNodeImp struct {
-	beeClient *beelite.Beelite
-	nodeMode  NodeModeType
-}
-
-type MobileNodeOptions struct {
-	FullNodeMode             bool
-	BootnodeMode             bool
-	Bootnodes                string
-	StaticNodes              string
-	DataDir                  string
-	WelcomeMessage           string
-	BlockchainRpcEndpoint    string
-	SwapInitialDeposit       string
-	PaymentThreshold         string
-	SwapEnable               bool
-	ChequebookEnable         bool
-	UsePostageSnapshot       bool
-	Mainnet                  bool
-	NetworkID                int64
-	NATAddr                  string
-	CacheCapacity            int64
-	DBOpenFilesLimit         int64
-	DBWriteBufferSize        int64
-	DBBlockCacheCapacity     int64
-	DBDisableSeeksCompaction bool
-	RetrievalCaching         bool
-}
-
-type File struct {
-	Name string
-	Data []byte
-}
-
-type BlockchainData struct {
-	WalletAddress     string
-	ChequebookAddress string
-	ChequebookBalance string
-}
-
-type NodeModeType int
-
-const (
-	NodeModeUltraLight NodeModeType = iota
-	NodeModeLight
-	NodeModeFull
-)
-
-func (n NodeModeType) String() string {
-	switch n {
-	case NodeModeUltraLight:
-		return "ultra-light"
-	case NodeModeLight:
-		return "light"
-	case NodeModeFull:
-		return "full"
-	default:
-		return "unknown"
-	}
+	beeClient    *beelite.Beelite
+	nodeMode     NodeModeType
+	stampManager *StampManager
 }
 
 func StartNode(options *MobileNodeOptions, password string, verbosity string) (MobileNode, error) {
@@ -97,16 +46,7 @@ func StartNode(options *MobileNodeOptions, password string, verbosity string) (M
 		return nil, err
 	}
 
-	return &MobileNodeImp{beeClient: beeClient, nodeMode: determineNodeMode(options)}, nil
-}
-
-func determineNodeMode(options *MobileNodeOptions) NodeModeType {
-	if options.FullNodeMode && !options.BootnodeMode {
-		return NodeModeFull
-	} else if options.BlockchainRpcEndpoint != "" {
-		return NodeModeLight
-	}
-	return NodeModeUltraLight
+	return &MobileNodeImp{beeClient: beeClient, nodeMode: NodeModeType(beeClient.BeeNodeMode()), stampManager: NewStampManager(beeClient)}, nil
 }
 
 func convert(options *MobileNodeOptions) (*beelite.LiteOptions, error) {
@@ -260,5 +200,23 @@ func (m *MobileNodeImp) getChequebookBalance() (string, error) {
 	}
 
 	return chequebookBalance.String(), nil
+}
 
+func (m *MobileNodeImp) FetchStamps() {
+	m.stampManager.GetAllBatches()
+}
+
+func (m *MobileNodeImp) GetStampCount() int {
+	return len(m.stampManager.stamps)
+}
+
+func (m *MobileNodeImp) GetStamp(index int) *StampData {
+	if index < 0 || index >= len(m.stampManager.stamps) {
+		return nil
+	}
+	return m.stampManager.stamps[index]
+}
+
+func (m *MobileNodeImp) BuyStamp(amountString string, depthString string, label string, immutable bool) (string, error) {
+	return m.stampManager.BuyStamp(amountString, depthString, label, immutable)
 }
