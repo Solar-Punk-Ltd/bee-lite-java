@@ -22,7 +22,7 @@ type MobileNode interface {
 	FetchStamps()
 	GetStampCount() int
 	GetStamp(index int) *StampData
-	BuyStamp(amountString string, depthString string, label string, immutable bool) (string, error)
+	BuyStamp(amountString string, depthString string, name string, immutable bool) (string, error)
 	Upload(batchIdHex, filename, contentType string,
 		act bool,
 		historyAddressHex string,
@@ -224,8 +224,8 @@ func (m *MobileNodeImp) GetStamp(index int) *StampData {
 	return m.stampManager.stamps[index]
 }
 
-func (m *MobileNodeImp) BuyStamp(amountString string, depthString string, label string, immutable bool) (string, error) {
-	return m.stampManager.BuyStamp(amountString, depthString, label, immutable)
+func (m *MobileNodeImp) BuyStamp(amountString string, depthString string, name string, immutable bool) (string, error) {
+	return m.stampManager.BuyStamp(amountString, depthString, name, immutable)
 }
 
 func (m *MobileNodeImp) Upload(batchIdHex, filename, contentType string,

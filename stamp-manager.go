@@ -56,7 +56,7 @@ func (sm *StampManager) GetAllBatches() {
 	sm.stamps = stamps
 }
 
-func (sm *StampManager) BuyStamp(amountString string, depthString string, label string, immutable bool) (string, error) {
+func (sm *StampManager) BuyStamp(amountString string, depthString string, name string, immutable bool) (string, error) {
 	amount := new(big.Int)
 	if _, ok := amount.SetString(amountString, 10); !ok {
 		return "", fmt.Errorf("invalid amount string: %s", amountString)
@@ -67,7 +67,7 @@ func (sm *StampManager) BuyStamp(amountString string, depthString string, label 
 		return "", fmt.Errorf("invalid depth string: %s", depthString)
 	}
 
-	hash, _, err := sm.beeClient.BuyStamp(amount, depth, label, immutable)
+	hash, _, err := sm.beeClient.BuyStamp(amount, depth, name, immutable)
 	if err != nil {
 		return "", err
 	}
