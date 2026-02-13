@@ -23,12 +23,19 @@ type MobileNode interface {
 	GetStampCount() int
 	GetStamp(index int) *StampData
 	BuyStamp(amountString string, depthString string, label string, immutable bool) (string, error)
+	Upload(batchIdHex, filename, contentType string,
+		act bool,
+		historyAddressHex string,
+		encrypt bool,
+		rLevel byte,
+		content []byte) (fileUploadResult *FileUploadResult, err error)
 }
 
 type MobileNodeImp struct {
-	beeClient    *beelite.Beelite
-	nodeMode     NodeModeType
-	stampManager *StampManager
+	beeClient     *beelite.Beelite
+	nodeMode      NodeModeType
+	stampManager  *StampManager
+	uploadManager *UploadManager
 }
 
 func StartNode(options *MobileNodeOptions, password string, verbosity string) (MobileNode, error) {
@@ -46,7 +53,7 @@ func StartNode(options *MobileNodeOptions, password string, verbosity string) (M
 		return nil, err
 	}
 
-	return &MobileNodeImp{beeClient: beeClient, nodeMode: NodeModeType(beeClient.BeeNodeMode()), stampManager: NewStampManager(beeClient)}, nil
+	return &MobileNodeImp{beeClient: beeClient, nodeMode: NodeModeType(beeClient.BeeNodeMode()), stampManager: NewStampManager(beeClient), uploadManager: NewUploadManager(beeClient)}, nil
 }
 
 func convert(options *MobileNodeOptions) (*beelite.LiteOptions, error) {
@@ -219,4 +226,20 @@ func (m *MobileNodeImp) GetStamp(index int) *StampData {
 
 func (m *MobileNodeImp) BuyStamp(amountString string, depthString string, label string, immutable bool) (string, error) {
 	return m.stampManager.BuyStamp(amountString, depthString, label, immutable)
+}
+
+func (m *MobileNodeImp) Upload(batchIdHex, filename, contentType string,
+	act bool,
+	historyAddressHex string,
+	encrypt bool,
+	redundancyLevel byte,
+	content []byte) (fileUploadResult *FileUploadResult, err error) {
+
+	historyAddress := swarm.MustParseHexAddress(historyAddressHex)
+	reference, newHistoryAddress, err := m.uploadManager.Upload(batchIdHex, filename, contentType, act, historyAddress, encrypt, redundancyLevel, content)
+	if err != nil {
+		return nil, err
+	}
+
+	return &FileUploadResult{ReferenceHex: reference.String(), HistoryAddressHex: newHistoryAddress.String()}, nil
 }

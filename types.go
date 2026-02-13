@@ -58,9 +58,15 @@ func (n NodeModeType) String() string {
 
 type StampData struct {
 	Label         string
-	BatchID       []byte
+	BatchIdHex    string
 	BatchAmount   string
 	BatchDepth    byte
 	BucketDepth   byte
 	ImmutableFlag bool
+	// TTL           string TODO try to solve it later
+}
+
+type FileUploadResult struct {
+	ReferenceHex      string
+	HistoryAddressHex string
 }

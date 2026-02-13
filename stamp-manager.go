@@ -1,6 +1,7 @@
 package mobile
 
 import (
+	"encoding/hex"
 	"fmt"
 	"math/big"
 	"strconv"
@@ -20,13 +21,14 @@ func NewStampManager(beeClient *beelite.Beelite) *StampManager {
 	}
 }
 
+// TODO: Delete this or the other
 func (sm *StampManager) GetUsableBatches() {
 	batches := sm.beeClient.GetUsableBatches()
 	stamps := make([]*StampData, len(batches))
 	for i, batch := range batches {
 		stamps[i] = &StampData{
 			Label:         batch.Label(),
-			BatchID:       batch.ID(),
+			BatchIdHex:    hex.EncodeToString(batch.ID()),
 			BatchAmount:   batch.Amount().String(),
 			BatchDepth:    batch.Depth(),
 			BucketDepth:   batch.BucketDepth(),
@@ -43,7 +45,7 @@ func (sm *StampManager) GetAllBatches() {
 	for i, batch := range batches {
 		stamps[i] = &StampData{
 			Label:         batch.Label(),
-			BatchID:       batch.ID(),
+			BatchIdHex:    hex.EncodeToString(batch.ID()),
 			BatchAmount:   batch.Amount().String(),
 			BatchDepth:    batch.Depth(),
 			BucketDepth:   batch.BucketDepth(),
