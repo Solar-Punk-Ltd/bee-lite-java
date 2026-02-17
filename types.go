@@ -63,7 +63,6 @@ type StampData struct {
 	BatchDepth    byte
 	BucketDepth   byte
 	ImmutableFlag bool
-	// TTL           string TODO try to solve it later
 }
 
 type FileUploadResult struct {

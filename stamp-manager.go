@@ -21,23 +21,6 @@ func NewStampManager(beeClient *beelite.Beelite) *StampManager {
 	}
 }
 
-// TODO: Delete this or the other
-func (sm *StampManager) GetUsableBatches() {
-	batches := sm.beeClient.GetUsableBatches()
-	stamps := make([]*StampData, len(batches))
-	for i, batch := range batches {
-		stamps[i] = &StampData{
-			Label:         batch.Label(),
-			BatchIdHex:    hex.EncodeToString(batch.ID()),
-			BatchAmount:   batch.Amount().String(),
-			BatchDepth:    batch.Depth(),
-			BucketDepth:   batch.BucketDepth(),
-			ImmutableFlag: batch.ImmutableFlag(),
-		}
-	}
-	sm.stamps = stamps
-}
-
 func (sm *StampManager) GetAllBatches() {
 	batches := sm.beeClient.GetAllBatches()
 
