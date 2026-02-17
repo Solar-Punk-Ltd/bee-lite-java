@@ -13,40 +13,32 @@ import (
 
 const StringSliceDelimiter = "|"
 
-type MobileNode struct {
-	beeClient *beelite.Beelite
+type MobileNode interface {
+	BlockchainData() (*BlockchainData, error)
+	ConnectedPeerCount() int
+	Download(hash string) (*File, error)
+	Shutdown() error
+	WalletAddress() string
+	FetchStamps()
+	GetStampCount() int
+	GetStamp(index int) *StampData
+	BuyStamp(amountString string, depthString string, name string, immutable bool) (string, error)
+	Upload(batchIdHex, filename, contentType string,
+		act bool,
+		historyAddressHex string,
+		encrypt bool,
+		rLevel byte,
+		content []byte) (fileUploadResult *FileUploadResult, err error)
 }
 
-type MobileNodeOptions struct {
-	FullNodeMode             bool
-	BootnodeMode             bool
-	Bootnodes                string
-	StaticNodes              string
-	DataDir                  string
-	WelcomeMessage           string
-	BlockchainRpcEndpoint    string
-	SwapInitialDeposit       string
-	PaymentThreshold         string
-	SwapEnable               bool
-	ChequebookEnable         bool
-	UsePostageSnapshot       bool
-	Mainnet                  bool
-	NetworkID                int64
-	NATAddr                  string
-	CacheCapacity            int64
-	DBOpenFilesLimit         int64
-	DBWriteBufferSize        int64
-	DBBlockCacheCapacity     int64
-	DBDisableSeeksCompaction bool
-	RetrievalCaching         bool
+type MobileNodeImp struct {
+	beeClient     *beelite.Beelite
+	nodeMode      NodeModeType
+	stampManager  *StampManager
+	uploadManager *UploadManager
 }
 
-type File struct {
-	Name string
-	Data []byte
-}
-
-func StartNode(options *MobileNodeOptions, password string, verbosity string) (*MobileNode, error) {
+func StartNode(options *MobileNodeOptions, password string, verbosity string) (MobileNode, error) {
 
 	beeliteOptions, err := convert(options)
 
@@ -61,7 +53,7 @@ func StartNode(options *MobileNodeOptions, password string, verbosity string) (*
 		return nil, err
 	}
 
-	return &MobileNode{beeClient: beeClient}, nil
+	return &MobileNodeImp{beeClient: beeClient, nodeMode: NodeModeType(beeClient.BeeNodeMode()), stampManager: NewStampManager(beeClient), uploadManager: NewUploadManager(beeClient)}, nil
 }
 
 func convert(options *MobileNodeOptions) (*beelite.LiteOptions, error) {
@@ -129,7 +121,7 @@ func validate(options *MobileNodeOptions) error {
 	return nil
 }
 
-func (bl *MobileNode) Download(hash string) (*File, error) {
+func (bl *MobileNodeImp) Download(hash string) (*File, error) {
 	bl.beeClient.GetLogger().Info("downloading: ", "hash", hash)
 
 	var result *File = nil
@@ -161,19 +153,93 @@ func (bl *MobileNode) Download(hash string) (*File, error) {
 	return result, nil
 }
 
-func (a *MobileNode) WalletAddress() string {
-	return a.beeClient.OverlayEthAddress().String()
-}
-func (a *MobileNode) ConnectedPeerCount() int {
-	return a.beeClient.ConnectedPeerCount()
+func (m *MobileNodeImp) WalletAddress() string {
+	return m.beeClient.OverlayEthAddress().String()
 }
 
-func (a *MobileNode) Shutdown() error {
-	err := a.beeClient.Shutdown()
+func (m *MobileNodeImp) BlockchainData() (*BlockchainData, error) {
+	chequebookBalance, err := m.getChequebookBalance()
+	chequebookAddress := m.getChequebookAddr()
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &BlockchainData{
+		WalletAddress:     m.beeClient.OverlayEthAddress().String(),
+		ChequebookAddress: chequebookAddress,
+		ChequebookBalance: chequebookBalance,
+	}, nil
+}
+
+func (m *MobileNodeImp) ConnectedPeerCount() int {
+	return m.beeClient.ConnectedPeerCount()
+}
+
+func (m *MobileNodeImp) Shutdown() error {
+	err := m.beeClient.Shutdown()
 	if err == nil {
-		a.beeClient.GetLogger().Info("shutdown succeeded")
+		m.beeClient.GetLogger().Info("shutdown succeeded")
 		return nil
 	}
-	a.beeClient.GetLogger().Error(err, "shutdown failed")
+	m.beeClient.GetLogger().Error(err, "shutdown failed")
 	return err
+}
+
+func (m *MobileNodeImp) getChequebookAddr() string {
+
+	if m.nodeMode == NodeModeUltraLight {
+		return "N/A"
+	}
+
+	return m.beeClient.ChequebookAddr().String()
+}
+
+func (m *MobileNodeImp) getChequebookBalance() (string, error) {
+	if m.nodeMode == NodeModeUltraLight {
+		return "N/A", nil
+	}
+
+	chequebookBalance, err := m.beeClient.ChequebookBalance()
+	if err != nil {
+		m.beeClient.GetLogger().Error(err, "failed to get chequebook balance")
+		return "", err
+	}
+
+	return chequebookBalance.String(), nil
+}
+
+func (m *MobileNodeImp) FetchStamps() {
+	m.stampManager.GetAllBatches()
+}
+
+func (m *MobileNodeImp) GetStampCount() int {
+	return len(m.stampManager.stamps)
+}
+
+func (m *MobileNodeImp) GetStamp(index int) *StampData {
+	if index < 0 || index >= len(m.stampManager.stamps) {
+		return nil
+	}
+	return m.stampManager.stamps[index]
+}
+
+func (m *MobileNodeImp) BuyStamp(amountString string, depthString string, name string, immutable bool) (string, error) {
+	return m.stampManager.BuyStamp(amountString, depthString, name, immutable)
+}
+
+func (m *MobileNodeImp) Upload(batchIdHex, filename, contentType string,
+	act bool,
+	historyAddressHex string,
+	encrypt bool,
+	redundancyLevel byte,
+	content []byte) (fileUploadResult *FileUploadResult, err error) {
+
+	historyAddress := swarm.MustParseHexAddress(historyAddressHex)
+	reference, newHistoryAddress, err := m.uploadManager.Upload(batchIdHex, filename, contentType, act, historyAddress, encrypt, redundancyLevel, content)
+	if err != nil {
+		return nil, err
+	}
+
+	return &FileUploadResult{ReferenceHex: reference.String(), HistoryAddressHex: newHistoryAddress.String()}, nil
 }
