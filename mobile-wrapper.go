@@ -136,6 +136,10 @@ func (bl *MobileNodeImp) Download(hash string) (*File, error) {
 
 	ref, fileName, err := bl.beeClient.GetBzz(context.Background(), dlAddr, nil, nil, nil)
 	if err != nil {
+		if errors.Is(err, beelite.ErrFailedToGetBzzReference) {
+			return nil, nil
+		}
+
 		bl.beeClient.GetLogger().Error(err, "download failed")
 		return nil, err
 	}
