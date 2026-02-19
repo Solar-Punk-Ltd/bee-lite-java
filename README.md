@@ -84,4 +84,4 @@ In the root of this project run
 
 Run the following:
 
-`gomobile bind -target=android -androidapi=21 -o mobile.aar`
+`gomobile bind -target=android -androidapi=21 -ldflags="-checklinkname=0" -o mobile.aar`
