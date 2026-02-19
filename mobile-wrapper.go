@@ -42,7 +42,6 @@ func StartNode(options *MobileNodeOptions, password string, verbosity string) (M
 
 	beeliteOptions, err := convert(options)
 
-	fmt.Printf("password: %s\n", password)
 	fmt.Printf("%+v\n", beeliteOptions)
 	if err != nil {
 		return nil, err
