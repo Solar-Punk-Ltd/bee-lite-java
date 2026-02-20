@@ -35,27 +35,6 @@ type BlockchainData struct {
 	ChequebookBalance string
 }
 
-type NodeModeType int
-
-const (
-	NodeModeUltraLight NodeModeType = iota
-	NodeModeLight
-	NodeModeFull
-)
-
-func (n NodeModeType) String() string {
-	switch n {
-	case NodeModeUltraLight:
-		return "ultra-light"
-	case NodeModeLight:
-		return "light"
-	case NodeModeFull:
-		return "full"
-	default:
-		return "unknown"
-	}
-}
-
 type StampData struct {
 	Label         string
 	BatchIdHex    string

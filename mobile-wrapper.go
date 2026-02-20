@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	beelite "github.com/Solar-Punk-Ltd/bee-lite"
+	"github.com/ethersphere/bee/v2/pkg/api"
 	"github.com/ethersphere/bee/v2/pkg/swarm"
 )
 
@@ -33,7 +34,6 @@ type MobileNode interface {
 
 type MobileNodeImp struct {
 	beeClient     *beelite.Beelite
-	nodeMode      NodeModeType
 	stampManager  *StampManager
 	uploadManager *UploadManager
 }
@@ -42,7 +42,6 @@ func StartNode(options *MobileNodeOptions, password string, verbosity string) (M
 
 	beeliteOptions, err := convert(options)
 
-	fmt.Printf("password: %s\n", password)
 	fmt.Printf("%+v\n", beeliteOptions)
 	if err != nil {
 		return nil, err
@@ -53,7 +52,7 @@ func StartNode(options *MobileNodeOptions, password string, verbosity string) (M
 		return nil, err
 	}
 
-	return &MobileNodeImp{beeClient: beeClient, nodeMode: NodeModeType(beeClient.BeeNodeMode()), stampManager: NewStampManager(beeClient), uploadManager: NewUploadManager(beeClient)}, nil
+	return &MobileNodeImp{beeClient: beeClient, stampManager: NewStampManager(beeClient), uploadManager: NewUploadManager(beeClient)}, nil
 }
 
 func convert(options *MobileNodeOptions) (*beelite.LiteOptions, error) {
@@ -121,8 +120,8 @@ func validate(options *MobileNodeOptions) error {
 	return nil
 }
 
-func (bl *MobileNodeImp) Download(hash string) (*File, error) {
-	bl.beeClient.GetLogger().Info("downloading: ", "hash", hash)
+func (m *MobileNodeImp) Download(hash string) (*File, error) {
+	m.beeClient.GetLogger().Info("downloading: ", "hash", hash)
 
 	var result *File = nil
 	if hash == "" {
@@ -134,40 +133,46 @@ func (bl *MobileNodeImp) Download(hash string) (*File, error) {
 		return nil, err
 	}
 
-	ref, fileName, err := bl.beeClient.GetBzz(context.Background(), dlAddr, nil, nil, nil)
+	ref, fileName, err := m.beeClient.GetBzz(context.Background(), dlAddr, nil, nil, nil)
 	if err != nil {
 		if errors.Is(err, beelite.ErrFailedToGetBzzReference) {
 			return nil, nil
 		}
 
-		bl.beeClient.GetLogger().Error(err, "download failed")
+		m.beeClient.GetLogger().Error(err, "download failed")
 		return nil, err
 	}
 
 	hash = ""
 	data, err := io.ReadAll(ref)
 	if err != nil {
-		bl.beeClient.GetLogger().Error(err, "convert to bytes failed")
+		m.beeClient.GetLogger().Error(err, "convert to bytes failed")
 		return nil, err
 	}
 
-	bl.beeClient.GetLogger().Info("download succeeded", "fileName", fileName, "size", len(data))
+	m.beeClient.GetLogger().Info("download succeeded", "fileName", fileName, "size", len(data))
 	result = &File{Name: fileName, Data: data}
 
 	return result, nil
 }
 
+// TODO remove later - ReactNative app still using it
 func (m *MobileNodeImp) WalletAddress() string {
 	return m.beeClient.OverlayEthAddress().String()
 }
 
 func (m *MobileNodeImp) BlockchainData() (*BlockchainData, error) {
+	m.beeClient.GetLogger().Info("Getting blockchain data")
+
 	chequebookBalance, err := m.getChequebookBalance()
 	chequebookAddress := m.getChequebookAddr()
 
 	if err != nil {
+		m.beeClient.GetLogger().Error(err, "failed to get blockchain data")
 		return nil, err
 	}
+
+	m.beeClient.GetLogger().Info("Blockchain data retrieved", "walletAddress", m.beeClient.OverlayEthAddress().String(), "chequebookAddress", chequebookAddress, "chequebookBalance", chequebookBalance)
 
 	return &BlockchainData{
 		WalletAddress:     m.beeClient.OverlayEthAddress().String(),
@@ -191,8 +196,8 @@ func (m *MobileNodeImp) Shutdown() error {
 }
 
 func (m *MobileNodeImp) getChequebookAddr() string {
-
-	if m.nodeMode == NodeModeUltraLight {
+	if m.beeClient.BeeNodeMode() == api.UltraLightMode {
+		m.beeClient.GetLogger().Info("Node running in ultra-light mode, skipping getChequebookAddr query")
 		return "N/A"
 	}
 
@@ -200,7 +205,8 @@ func (m *MobileNodeImp) getChequebookAddr() string {
 }
 
 func (m *MobileNodeImp) getChequebookBalance() (string, error) {
-	if m.nodeMode == NodeModeUltraLight {
+	if m.beeClient.BeeNodeMode() == api.UltraLightMode {
+		m.beeClient.GetLogger().Info("Node running in ultra-light mode, skipping getChequebookBalance query")
 		return "N/A", nil
 	}
 
