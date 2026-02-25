@@ -6,4 +6,4 @@ install:
 	go mod tidy && go get golang.org/x/mobile/bind && gomobile init
 
 build: install
-	rm -rf ./build && mkdir ./build && gomobile bind -target=android -androidapi=35 -ldflags="-checklinkname=0" -o ./build/$(AAR_FILE)
+	rm -rf ./build && mkdir ./build && gomobile bind -target=android -androidapi=30 -ldflags="-checklinkname=0" -o ./build/$(AAR_FILE)
