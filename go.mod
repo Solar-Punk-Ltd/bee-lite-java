@@ -8,6 +8,10 @@ require github.com/Solar-Punk-Ltd/bee-lite v0.0.13
 
 require github.com/ethersphere/bee/v2 v2.7.0
 
+replace github.com/Solar-Punk-Ltd/bee-lite => ../bee-lite
+
+replace github.com/ethersphere/bee/v2 => ../../nandibaa/bee
+
 require (
 	contrib.go.opencensus.io/exporter/prometheus v0.4.2 // indirect
 	github.com/Microsoft/go-winio v0.6.2 // indirect
@@ -16,7 +20,7 @@ require (
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/bits-and-blooms/bitset v1.20.0 // indirect
 	github.com/btcsuite/btcd/btcec/v2 v2.3.2 // indirect
-	github.com/caddyserver/certmagic v0.21.6 // indirect
+	github.com/caddyserver/certmagic v0.21.6 // indirect; indirect`
 	github.com/caddyserver/zerossl v0.1.3 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/consensys/gnark-crypto v0.18.1 // indirect

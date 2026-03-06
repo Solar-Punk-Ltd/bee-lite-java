@@ -29,6 +29,11 @@ type File struct {
 	Data []byte
 }
 
+type FileDownloadResult struct {
+	File  *File
+	Stats *ReadableBandwidthStats
+}
+
 type BlockchainData struct {
 	WalletAddress     string
 	ChequebookAddress string
@@ -47,4 +52,12 @@ type StampData struct {
 type FileUploadResult struct {
 	ReferenceHex      string
 	HistoryAddressHex string
+	Stats             *ReadableBandwidthStats
+}
+
+type ReadableBandwidthStats struct {
+	TotalInMB   string
+	TotalOutMB  string
+	RateInMBps  string
+	RateOutMBps string
 }
