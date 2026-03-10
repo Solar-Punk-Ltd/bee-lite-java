@@ -9,6 +9,7 @@ import (
 
 	beelite "github.com/Solar-Punk-Ltd/bee-lite"
 	"github.com/ethersphere/bee/v2/pkg/api"
+	"github.com/ethersphere/bee/v2/pkg/storage"
 	"github.com/ethersphere/bee/v2/pkg/swarm"
 )
 
@@ -148,7 +149,12 @@ func (m *MobileNodeImp) Download(hash string) (*FileDownloadResult, error) {
 	hash = ""
 	data, err := io.ReadAll(ref)
 	if err != nil {
+		if errors.Is(err, storage.ErrNotFound) {
+			m.beeClient.GetLogger().Info("content not found for hash: ", "hash", hash)
+			return nil, nil
+		}
 		m.beeClient.GetLogger().Error(err, "convert to bytes failed")
+
 		return nil, err
 	}
 
