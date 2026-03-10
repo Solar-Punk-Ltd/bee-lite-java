@@ -17,13 +17,14 @@ const StringSliceDelimiter = "|"
 type MobileNode interface {
 	BlockchainData() (*BlockchainData, error)
 	ConnectedPeerCount() int
-	Download(hash string) (*File, error)
+	Download(hash string) (*FileDownloadResult, error)
 	Shutdown() error
 	WalletAddress() string
 	FetchStamps()
 	GetStampCount() int
 	GetStamp(index int) *StampData
 	BuyStamp(amountString string, depthString string, name string, immutable bool) (string, error)
+	GetBandwidthStats() *ReadableBandwidthStats
 	Upload(batchIdHex, filename, contentType string,
 		act bool,
 		historyAddressHex string,
@@ -120,7 +121,7 @@ func validate(options *MobileNodeOptions) error {
 	return nil
 }
 
-func (m *MobileNodeImp) Download(hash string) (*File, error) {
+func (m *MobileNodeImp) Download(hash string) (*FileDownloadResult, error) {
 	m.beeClient.GetLogger().Info("downloading: ", "hash", hash)
 
 	var result *File = nil
@@ -133,6 +134,7 @@ func (m *MobileNodeImp) Download(hash string) (*File, error) {
 		return nil, err
 	}
 
+	m.beeClient.ClearBandwidthStats()
 	ref, fileName, err := m.beeClient.GetBzz(context.Background(), dlAddr, nil, nil, nil)
 	if err != nil {
 		if errors.Is(err, beelite.ErrFailedToGetBzzReference) {
@@ -153,7 +155,38 @@ func (m *MobileNodeImp) Download(hash string) (*File, error) {
 	m.beeClient.GetLogger().Info("download succeeded", "fileName", fileName, "size", len(data))
 	result = &File{Name: fileName, Data: data}
 
-	return result, nil
+	stats := m.GetBandwidthStats()
+
+	return &FileDownloadResult{File: result, Stats: stats}, nil
+}
+
+func (m *MobileNodeImp) Upload(batchIdHex, filename, contentType string,
+	act bool,
+	historyAddressHex string,
+	encrypt bool,
+	redundancyLevel byte,
+	content []byte) (fileUploadResult *FileUploadResult, err error) {
+
+	historyAddress := swarm.MustParseHexAddress(historyAddressHex)
+	m.beeClient.ClearBandwidthStats()
+	reference, newHistoryAddress, err := m.uploadManager.Upload(batchIdHex, filename, contentType, act, historyAddress, encrypt, redundancyLevel, content)
+	if err != nil {
+		return nil, err
+	}
+
+	stats := m.GetBandwidthStats()
+
+	return &FileUploadResult{ReferenceHex: reference.String(), HistoryAddressHex: newHistoryAddress.String(), Stats: stats}, nil
+}
+
+func (m *MobileNodeImp) GetBandwidthStats() *ReadableBandwidthStats {
+	stats := m.beeClient.GetBandwidthStats()
+	return &ReadableBandwidthStats{
+		TotalInMB:   stats.TotalInMB,
+		TotalOutMB:  stats.TotalOutMB,
+		RateInMBps:  stats.RateInMBps,
+		RateOutMBps: stats.RateOutMBps,
+	}
 }
 
 // TODO remove later - ReactNative app still using it
@@ -236,20 +269,4 @@ func (m *MobileNodeImp) GetStamp(index int) *StampData {
 
 func (m *MobileNodeImp) BuyStamp(amountString string, depthString string, name string, immutable bool) (string, error) {
 	return m.stampManager.BuyStamp(amountString, depthString, name, immutable)
-}
-
-func (m *MobileNodeImp) Upload(batchIdHex, filename, contentType string,
-	act bool,
-	historyAddressHex string,
-	encrypt bool,
-	redundancyLevel byte,
-	content []byte) (fileUploadResult *FileUploadResult, err error) {
-
-	historyAddress := swarm.MustParseHexAddress(historyAddressHex)
-	reference, newHistoryAddress, err := m.uploadManager.Upload(batchIdHex, filename, contentType, act, historyAddress, encrypt, redundancyLevel, content)
-	if err != nil {
-		return nil, err
-	}
-
-	return &FileUploadResult{ReferenceHex: reference.String(), HistoryAddressHex: newHistoryAddress.String()}, nil
 }
